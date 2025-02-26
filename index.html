@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحويل فيديو إلى صوت</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e90ff, #ff6347);
+            font-family: 'Arial', sans-serif;
+            direction: rtl;
+            text-align: center;
+            padding: 0;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h2 {
+            color: #fff;
+            font-family: 'Cursive', sans-serif;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #joker {
+            font-size: 3em;
+            color: #fff;
+            font-family: 'Cursive', sans-serif;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            font-size: 1.5em;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #progressBarContainer {
+            width: 80%;
+            background-color: #f3f3f3;
+            margin-top: 30px;
+            border-radius: 25px;
+            height: 30px;
+        }
+
+        #progressBar {
+            width: 0%;
+            height: 100%;
+            background-color: #4caf50;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+            font-weight: bold;
+            border-radius: 25px;
+        }
+
+        #message {
+            font-size: 1.5em;
+            color: green;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        #audioOutput {
+            margin-top: 20px;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            font-size: 1.2em;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="joker">joker</div>
+    <h2>تحويل فيديو إلى صوت</h2>
+    <input type="file" id="videoInput" accept="video/*">
+    <br><br>
+    <button onclick="convertVideoToAudio()">تحويل</button>
+    <br><br>
+
+    <!-- شريط التقدم -->
+    <div id="progressBarContainer">
+        <div id="progressBar">0%</div>
+    </div>
+
+    <br><br>
+    <audio id="audioOutput" controls></audio>
+    <br><br>
+    <div id="message"></div>
+
+    <script>
+        function convertVideoToAudio() {
+            const videoInput = document.getElementById('videoInput').files[0];
+            if (!videoInput) {
+                alert('يرجى اختيار ملف فيديو');
+                return;
+            }
+
+            const audioOutput = document.getElementById('audioOutput');
+            const videoElement = document.createElement('video');
+            videoElement.src = URL.createObjectURL(videoInput);
+
+            // شريط التقدم
+            const progressBar = document.getElementById('progressBar');
+            let progress = 0;
+
+            videoElement.addEventListener('loadeddata', () => {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaElementSource(videoElement);
+                const destination = audioContext.createMediaStreamDestination();
+                source.connect(destination);
+                source.connect(audioContext.destination);
+
+                const recorder = new MediaRecorder(destination.stream);
+                const chunks = [];
+
+                recorder.ondataavailable = (event) => {
+                    chunks.push(event.data);
+                };
+
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'audio/mp3' });
+                    audioOutput.src = URL.createObjectURL(blob);
+
+                    // عرض الرسالة بنجاح
+                    document.getElementById('message').textContent = 'تم تحويل الفيديو إلى صوت بنجاح!';
+
+                    // تحميل الملف الصوتي
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'converted_audio.mp3';
+                    link.click();
+                };
+
+                recorder.start();
+                videoElement.play();
+                videoElement.onended = () => {
+                    recorder.stop();
+                };
+
+                // تحديث شريط التقدم
+                const progressInterval = setInterval(() => {
+                    if (progress < 100) {
+                        progress += 2;
+                        progressBar.style.width = progress + '%';
+                        progressBar.textContent = progress + '%';
+                    } else {
+                        clearInterval(progressInterval);
+                    }
+                }, 100); // زيادة التقدم كل 100ms
+            });
+        }
+    </script>
+</body>
+</html>
